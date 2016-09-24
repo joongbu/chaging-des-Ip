@@ -1,36 +1,3 @@
-/*
-* netfilter.c
-* (C) 2013, all rights reserved,
-*
-* This program is free software: you can redistribute it and/or modify
-* it under the terms of the GNU Lesser General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU Lesser General Public License for more details.
-*
-* You should have received a copy of the GNU Lesser General Public License
-* along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*/
-
-/*
-* DESCRIPTION:
-* This is a simple traffic filter/firewall using WinDivert.
-*
-* usage: netfilter.exe windivert-filter [priority]
-*
-* Any traffic that matches the windivert-filter will be blocked using one of
-* the following methods:
-* - TCP: send a TCP RST to the packet's source.
-* - UDP: send a ICMP(v6) "destination unreachable" to the packet's source.
-* - ICMP/ICMPv6: Drop the packet.
-*
-* This program is similar to Linux's iptables with the "-j REJECT" target.
-*/
-
 #include <winsock2.h>
 #include <windows.h>
 #include <stdio.h>
@@ -38,33 +5,15 @@
 #include <string.h>
 #include <Ws2tcpip.h>
 #include "windivert.h"
-
 #define MAXBUF  0xFFFF
-
-/*
-* Pre-fabricated packets.
-*/
 typedef struct
 {
 	WINDIVERT_IPHDR ip;
 	WINDIVERT_UDPHDR udp;
 } UDPPACKET, *PUDPPACKET;
 
-/*
-* Prototypes.
-*/
-
-/*
-* Entry.
-*/
-char *victim = "10.100.111.71";
-char *attack = "10.100.111.169";
-
-
-\
-
-
-
+char *victim;//= "10.100.111.71";
+char *attack;// = "10.100.111.169";
 int __cdecl main(int argc, char **argv)
 {
 	HANDLE handle;
@@ -109,6 +58,15 @@ int __cdecl main(int argc, char **argv)
 			GetLastError());
 		exit(EXIT_FAILURE);
 	}
+	victim = (char *)malloc(4);
+	attack = (char *)malloc(4);
+	printf("filltering ip : ");
+	scanf_s("%s", victim);
+	printf("by pass ip : ");
+	scanf_s("%s", attack);
+	printf("victim IP : %s\n", victim);
+	printf("attack IP : %s\n", attack);
+
 	// Main loop:
 	while (TRUE)
 	{
@@ -128,7 +86,11 @@ int __cdecl main(int argc, char **argv)
 		// Dump packet info: 
 		if (ip_header != NULL)
 		{
-			inet_pton(AF_INET,victim,&ip_header->DstAddr); //71번 IP로 보내라
+			UINT32 Ip;
+			inet_pton(AF_INET, victim, &Ip);
+			if(Ip == ip_header->DstAddr)
+			{
+			inet_pton(AF_INET,attack,&ip_header->DstAddr); //changing IP
 			ip_header->Checksum = WinDivertHelperCalcChecksums(packet,packet_len,0);
 			UINT8 *src_addr = (UINT8 *)&ip_header->SrcAddr;
 			UINT8 *dst_addr = (UINT8 *)&ip_header->DstAddr;
@@ -137,6 +99,7 @@ int __cdecl main(int argc, char **argv)
 				dst_addr[0], dst_addr[1], dst_addr[2], dst_addr[3]);
 			if (!WinDivertSend(handle, packet, packet_len, &send_addr, NULL))
 				printf("error : don't send");
+			}
 		}
 		putchar('\n');
 	}
