@@ -12,8 +12,8 @@ typedef struct
 	WINDIVERT_UDPHDR udp;
 } UDPPACKET, *PUDPPACKET;
 
-char *victim;//= "10.100.111.71";
-char *attack;// = "10.100.111.169";
+char *victim;
+char *attack;
 int __cdecl main(int argc, char **argv)
 {
 	HANDLE handle;
@@ -58,8 +58,8 @@ int __cdecl main(int argc, char **argv)
 			GetLastError());
 		exit(EXIT_FAILURE);
 	}
-	victim = (char *)malloc(4);
-	attack = (char *)malloc(4);
+	victim = (char *)malloc(15);
+	attack = (char *)malloc(15);
 	printf("filltering ip : ");
 	scanf_s("%s", victim);
 	printf("by pass ip : ");
@@ -68,6 +68,8 @@ int __cdecl main(int argc, char **argv)
 	printf("attack IP : %s\n", attack);
 
 	// Main loop:
+	UINT32 Ip;
+	inet_pton(AF_INET, victim, &Ip);
 	while (TRUE)
 	{
 		// Read a matching packet.
@@ -86,24 +88,23 @@ int __cdecl main(int argc, char **argv)
 		// Dump packet info: 
 		if (ip_header != NULL)
 		{
-			UINT32 Ip;
-			inet_pton(AF_INET, victim, &Ip);
-			if(Ip == ip_header->DstAddr)
+			if (Ip == ip_header->DstAddr)
 			{
-			inet_pton(AF_INET,attack,&ip_header->DstAddr); //changing IP
-			ip_header->Checksum = WinDivertHelperCalcChecksums(packet,packet_len,0);
-			UINT8 *src_addr = (UINT8 *)&ip_header->SrcAddr;
-			UINT8 *dst_addr = (UINT8 *)&ip_header->DstAddr;
-			printf("ip.SrcAddr=%u.%u.%u.%u ip.DstAddr=%u.%u.%u.%u \n",
-				src_addr[0], src_addr[1], src_addr[2], src_addr[3],
-				dst_addr[0], dst_addr[1], dst_addr[2], dst_addr[3]);
-			if (!WinDivertSend(handle, packet, packet_len, &send_addr, NULL))
-				printf("error : don't send");
+				inet_pton(AF_INET, attack, &ip_header->DstAddr); //changing IP
+				ip_header->Checksum = WinDivertHelperCalcChecksums(packet, packet_len, 0);
+				UINT8 *src_addr = (UINT8 *)&ip_header->SrcAddr;
+				UINT8 *dst_addr = (UINT8 *)&ip_header->DstAddr;
+				printf("ip.SrcAddr=%u.%u.%u.%u ip.DstAddr=%u.%u.%u.%u \n",
+					src_addr[0], src_addr[1], src_addr[2], src_addr[3],
+					dst_addr[0], dst_addr[1], dst_addr[2], dst_addr[3]);
+				if (!WinDivertSend(handle, packet, packet_len, &send_addr, NULL))
+					printf("error : don't send");
 			}
 		}
 		putchar('\n');
 	}
 
 }
+
 
 
